@@ -18,7 +18,7 @@
 #>
 function Update-EMAccessPackagePolicy {
     [CmdletBinding(DefaultParameterSetName='Parameter Set 1',
-                   SupportsShouldProcess=$true,
+                   SupportsShouldProcess=$false,
                    PositionalBinding=$false,
                    HelpUri = 'https://github.com/microsoftgraph/msgraph-sdk-powershell/issues/870',
                    ConfirmImpact='Medium')]
