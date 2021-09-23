@@ -11,6 +11,9 @@
     Update-EMAccessPackagePolicy -PolicyId 1f0d6301-1bc3-4ef8-b5b0-06b2f91cc915 -Enabled $false
 .NOTES
     Workaround for msgraph-sdk-powershell module issue reported https://github.com/microsoftgraph/msgraph-sdk-powershell/issues/870
+    Must already be connected to MS Graph using the MS Graph PowerShell SDK Module  with the proper permissions
+    ex: Connect-MgGraph -scopes EntitlementManagement.ReadWrite.All
+    See https://docs.microsoft.com/en-us/graph/api/accesspackageassignmentpolicy-update?view=graph-rest-beta for needed permissions
 
 #>
 function Update-EMAccessPackagePolicy {
