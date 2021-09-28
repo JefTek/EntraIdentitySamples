@@ -47,15 +47,20 @@ function Update-EMAccessPackagePolicy {
         $Description,
         # The status of the if the policy should be enabled to accepted requests
         [bool]
-        $Enabled
+        $Enabled,
+        # Endpoint Environment for MS Graph API Calls
+        [Parameter(ParameterSetName='Parameter Set 1')]
+        [ValidateSet("Global", "China", "USGov","USGovDoD","Germany")]
+        [String]
+        $Environment = "Global"
         
     )
     
     begin {
 
         $apiVersion = "beta"
-
-        $policyUri = ("/{0}/identityGovernance/entitlementManagement/accessPackageAssignmentPolicies/{1}" -f $apiVersion, $PolicyId)
+        $GraphEndpoint = (Get-MgEnvironment|Where-Object Name -eq $Environment).GraphEndpoint
+        $policyUri = ("{0}/{1}/identityGovernance/entitlementManagement/accessPackageAssignmentPolicies/{2}" -f $GraphEndpoint, $apiVersion, $PolicyId)
     }
 
     
