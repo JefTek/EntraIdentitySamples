@@ -55,7 +55,7 @@ function Update-EMAccessPackagePolicy {
 
         $apiVersion = "beta"
 
-        $policyUri = ("https://graph.microsoft.com/{0}/identityGovernance/entitlementManagement/accessPackageAssignmentPolicies/{1}" -f $apiVersion, $PolicyId)
+        $policyUri = ("/{0}/identityGovernance/entitlementManagement/accessPackageAssignmentPolicies/{1}" -f $apiVersion, $PolicyId)
     }
 
     
