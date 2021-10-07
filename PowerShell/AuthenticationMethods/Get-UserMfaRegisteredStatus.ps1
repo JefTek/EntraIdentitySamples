@@ -5,10 +5,9 @@
     Get the status of registered authentication methods that support MFA
 .EXAMPLE
     Get-UserMfaRegisteredStatus -UserId bbe132a5-02dc-42e0-8eca-7f7849823e76
-.EXAMPLE
-    Another example of how to use this cmdlet
 .NOTES
     Before running, be connected with Connect-MGGraph with the appropriate scopes for reading authentication methods
+    See https://docs.microsoft.com/en-us/graph/api/authentication-list-methods?view=graph-rest-1.0
 #>
 function Get-UserMfaRegisteredStatus ([string]$UserId) {
 
@@ -21,6 +20,7 @@ function Get-UserMfaRegisteredStatus ([string]$UserId) {
     foreach ($mfa in $MfaMethods) { if ($authmethods -contains $mfa) { $isMfaRegistered = $true } }
     
     $results = @{}
+    $results.UserId = $UserId
     $results.IsMfaRegistered = $isMfaRegistered
     $results.AuthMethodsRegistered = $authMethods
 
