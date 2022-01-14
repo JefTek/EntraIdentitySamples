@@ -47,9 +47,17 @@ function New-AzureADConnectedOrganization {
             ValueFromRemainingArguments = $false, 
             ParameterSetName = 'Default')]
         $DisplayName,
-        # The state of the new connected organization of either proposed or configured.  Defaults to proposed.
+        # The display name of the connected organization.   If not provided, will default to the DNS Domain Name
         [Parameter(Mandatory = $false,
             Position = 2,
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            ValueFromRemainingArguments = $false, 
+            ParameterSetName = 'Default')]
+        $Description,
+        # The state of the new connected organization of either proposed or configured.  Defaults to proposed.
+        [Parameter(Mandatory = $false,
+            Position = 3,
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
             ValueFromRemainingArguments = $false, 
@@ -60,7 +68,7 @@ function New-AzureADConnectedOrganization {
         $State = "proposed",
         # Create a new connected organization ad identity source type
         [Parameter(Mandatory = $false,
-            Position = 3,
+            Position = 4,
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
             ValueFromRemainingArguments = $false, 
@@ -68,7 +76,9 @@ function New-AzureADConnectedOrganization {
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
         [ValidateSet("azureActiveDirectoryTenant", "domainIdentitySource", "externalDomainFederation")]
-        $IdentitySourceType
+        $IdentitySourceType,
+        [switch]
+        $ResolveOnly
     )
     
     begin {
@@ -82,6 +92,10 @@ function New-AzureADConnectedOrganization {
             
             $existingConnectedOrg = $null
             
+            $domainResults = @{}
+            $domainResults.domainName = $DomainName
+            $domainResults.displayName = $displayName
+
             Write-Verbose ("Resolving DomainName {0} to determine if it is verified in an Azure Active Directory Tenant" -f $name)
             $resolvedDomain = Resolve-DomainNamForConnectedOrganization -DomainName $name
 
@@ -107,28 +121,73 @@ function New-AzureADConnectedOrganization {
 
             }
 
+            $domainResults.existingConnectedOrg = $existingConnectedOrg
 
-            if ($null = $existingConnectedOrg) {
-                if ($pscmdlet.ShouldProcess("Target", "Operation")) {
-            
+            $ConnectedOrg = $null
+
+            if ($null -eq $domainResults.existingConnectedOrg) {
+
+                $domainResults.Action = "Create"
+                $domainResults.Description = $Description
+                $domainResults.State = $State
+                if ($null -ne $displayName) {
+                
+                    $domainResults.DisplayName = $DisplayName
+                }
+                else {
+                    $domainResults.DisplayNAme = $DomainName
                 }
 
+                if ($ResolveOnly) {
+                    Write-Verbose "Running in ResolveOnly Mode.   New Connected Organization will not be created."
+                
+                }
+                else {
+                    
+                
+                    if ($pscmdlet.ShouldProcess($DomainName, "Create Connected Organization")) {
+            
+                        $NewCO = @{}
+                        $NewCO.Description = $domainResults.Description
+                        $NewCo.DisplayName = $domainResults.displayName
+                        $NewCo.DomainName = $domainResults.domainName
+                        $Newco.State = $State
+                        New-MgEntitlementManagementConnectedOrganization @NewCO
+
+                    }
+                }
             }
             else {
+                
+                $domainResults.Action = "Existing"
+                $ConnectedOrg = $existingConnectedOrg
+                
                 Write-Verbose ("An existing Connected Organization already exists for domain name {0}" -f $($resolvedDomain.domainName))
                 Write-Verbose ("The existing Connected Organization is {0} with id of {1}" -f $($existingConnectedOrg.Id), $($existingConnectedOrg.DisplayName))
             }
+        
+                
+                
+           
+        
+            
+            $domainResults.ConnectedOrgId = $ConnectedOrg.Id
+            $domainResults.ConnectedOrgDisplayName = $ConnectedOrg.DisplayName
+            $domainResults.ConnectedOrgDescription = $ConnectedOrg.Description
+            $domainResults.ConnectedOrgState = $ConnectedOrg.state
+
+
             
 
+            Write-Output ([PSCustomObject]$domainResults)
 
         }
 
 
 
        
+  
     }
-        
-    
     
     end {
         
@@ -161,7 +220,8 @@ function Resolve-DomainNamForConnectedOrganization {
    
         try {
             Write-Debug $TenantMetadataUri
-            Write-verbose "Checking for the presence of the Domain Name {0} as a verified domain in an Azure AD Tenant" -f $resolvedDomain.domainName
+            Write-verbose ("Checking for the presence of the Domain Name {0} as a verified domain in an Azure AD Tenant" -f $DomainName)
+            $Tenant = $null
             $Tenant = Invoke-RestMethod -ContentType "application/json; charset=utf-8" -Uri $TenantMetadataUri
 
             
@@ -171,7 +231,7 @@ function Resolve-DomainNamForConnectedOrganization {
             $resolvedDomain.TenantId = $Tenant.issuer.split("/")[3]
 
             if ($resolvedDomain.TenantId -eq '9cd80435-793b-4f48-844b-6b3f37d1c1f3') {
-                Write-Verbose ("{0} has been resolved to the public Microsoft Accounts Tenant, so will be treated as a Domain Identity Source Type!")
+                Write-Verbose ("{0} has been resolved to the public Microsoft Accounts Tenant, so domain will be treated as a Domain Identity Source Type!" -f $($domainName))
                 $resolvedDomain.TenantFound = $false
                 $resolvedDomain.IdentitySourceType = "domainIdentitySource"
             }
@@ -193,8 +253,8 @@ function Resolve-DomainNamForConnectedOrganization {
     }
     
     end {
-
-        Write-Output [pscustomobject]$resolvedDomain   
+        
+        Write-Output ([pscustomobject]$resolvedDomain)
         
     }
 }
