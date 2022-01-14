@@ -59,7 +59,7 @@ function New-EMRequestsFromTextFile {
     process {
 
 
-        foreach ($EnailAddress in $TextData) {
+        foreach ($EmailAddress in $TextData) {
             $accesspackage = Get-MgEntitlementManagementAccessPackage -DisplayNameEq $AccessPackageName -ExpandProperty "accessPackageAssignmentPolicies"
             $policy = $accesspackage.AccessPackageAssignmentPolicies[0]
 
