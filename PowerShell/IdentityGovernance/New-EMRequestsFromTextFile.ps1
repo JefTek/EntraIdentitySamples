@@ -66,7 +66,7 @@ function New-EMRequestsFromTextFile {
 
             try {
             
-                Write-Verbose ("Assigning {0} to Access Package!")
+                Write-Verbose ("Assigning {0} to Access Package!" -f $EmailAddress)
                 $req = New-MgEntitlementManagementAccessPackageAssignmentRequest -AccessPackageId $accesspackage.Id -AssignmentPolicyId $policy.Id -TargetEmail $EmailAddress
             }
             catch {
