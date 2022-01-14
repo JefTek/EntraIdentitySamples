@@ -51,7 +51,7 @@ function New-EMRequestsFromTextFile {
 
         }
         else {
-            New-Error  ("Text File {0} could not be found!  Please check the CSVPath!" -f $CsvPath)
+            New-Error  ("Text File {0} could not be found!  Please check the TextFilePath!" -f $TextFilePath)
         }
         
     }
