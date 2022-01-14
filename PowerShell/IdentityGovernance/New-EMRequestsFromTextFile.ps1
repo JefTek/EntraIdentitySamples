@@ -37,7 +37,7 @@ function New-EMRequestsFromTextFile {
             ParameterSetName = 'Default')]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
-        $AccessPackageName = "B2B_ONboarding"
+        $AccessPackageName = "B2B_Onboarding"
 
     )
     
@@ -46,7 +46,7 @@ function New-EMRequestsFromTextFile {
         Connect-MgGraph -Scopes "EntitlementManagement.ReadWrite.All"
         Select-MgProfile -Name "beta"
 
-        if ($true -eq (Test-Path -Path $TextFilPath)) {
+        if ($true -eq (Test-Path -Path $TextFilePath)) {
             $TextData = get-content $TextFilePath
 
         }
@@ -58,7 +58,6 @@ function New-EMRequestsFromTextFile {
     
     process {
 
-        Write-Verbose ("{0} Rows in the Text File." -f $($TextData | Measure-Object -count | Select-Object -ExpandProperty count))
 
         foreach ($EnailAddress in $TextData) {
             $accesspackage = Get-MgEntitlementManagementAccessPackage -DisplayNameEq $AccessPackageName -ExpandProperty "accessPackageAssignmentPolicies"
