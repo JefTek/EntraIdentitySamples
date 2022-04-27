@@ -10,7 +10,7 @@
 .NOTES
  - Assignment dates are bound by the policy of the original assignment (I cannot set an expiration date greater than the policy for the assignment allows)
  - Assignment policy must allow setting custom time spans for assignment
- - Setting an expiring assignment to no expiration is not supported.
+ - Assignment policy for existing assignment must be set for no expiration before setting an expring assignment to no expiration
 #>
 function Update-EMAccessPackageAssignmentExpiration {
     [CmdletBinding(DefaultParameterSetName = 'Core',
@@ -78,75 +78,78 @@ function Update-EMAccessPackageAssignmentExpiration {
         $currentAssignment = $null
         $currentAssignment = Get-MgEntitlementManagementAccessPackageAssignment -AccessPackageAssignmentId $AccessPackageAssignmentId
 
-        $currentExpirationDateTime = $currentAssignment.schedule.expiration.endDateTime
+        If ($currentAssignment.schedule.expiration.type -ne "noExpiration") {
 
-        $currentExpirationDays = (New-TimeSpan -End $currentExpirationDateTime -Start (get-date)).Days
 
-        Write-verbose ("{0} Assignment currently expires on {1} ({2} Days)" -f $currentAssignment.id,$currentExpirationDateTime, $currentExpirationDays)
+            $currentExpirationDateTime = $currentAssignment.schedule.expiration.endDateTime
 
-        If ($null -eq $currentAssignment) {
-            Write-Error ("Assignment not found for $AccessPackageAssignmentId!")
+            $currentExpirationDays = (New-TimeSpan -End $currentExpirationDateTime -Start (get-date)).Days
 
-        }
-        else {
+            Write-verbose ("{0} Assignment currently expires on {1} ({2} Days)" -f $currentAssignment.id, $currentExpirationDateTime, $currentExpirationDays)
 
-            $AssignmentPolicyId = $currentAssignment.assignmentPolicyId
+            If ($null -eq $currentAssignment) {
+                Write-Error ("Assignment not found for $AccessPackageAssignmentId!")
 
-            $accessPackageAssignmentRequest = @{}
-            $accessPackageAssignmentRequest.requestType = $RequestType
-
-            $accessPackageAssignment = @{}
-            $accessPackageAssignment.id = $currentAssignment.id
-            $accessPackageAssignment.assignmentPolicyId = $AssignmentPolicyId
-
-            $schedule = @{}
-            $schedule.startDateTime = $currentAssignment.schedule.StartDateTime
-            
-            
-            $expiration = @{}
-
-            If ($PSCmdlet.ParameterSetName -eq "Set New Expiration Date")
-            {
-                $dtExpire = [System.DateTime]::Parse($ExpirationDateTime, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
-                if ($dtExpire.Kind -ne "Utc") {
-                    $dtu = [System.DateTime]::SpecifyKind($dtExpire.ToUniversalTime(), [System.DateTimeKind]::Utc)
-                }
-                else {
-                    $dtu = $dtExpire
-                }
-
-                $expiration.type = "afterDateTime"
-                $expiration.endDateTime = $dtu
             }
+            else {
 
-            If ($PSCmdlet.ParameterSetName -eq "Set No Expiration")
-            {
-                throw "Updating an expiring assignment to no expiration is not currently supported!"
+                $AssignmentPolicyId = $currentAssignment.assignmentPolicyId
 
-                if ($SetNoExpiration)
-                {
-                $expiration.type = "noExpiration"
-                $expiration.endDateTime = $null
+                $accessPackageAssignmentRequest = @{}
+                $accessPackageAssignmentRequest.requestType = $RequestType
+
+                $accessPackageAssignment = @{}
+                $accessPackageAssignment.id = $currentAssignment.id
+                $accessPackageAssignment.assignmentPolicyId = $AssignmentPolicyId
+
+                $schedule = @{}
+                $schedule.startDateTime = $currentAssignment.schedule.StartDateTime
+
+
+                $expiration = @{}
+
+                If ($PSCmdlet.ParameterSetName -eq "Set New Expiration Date") {
+                    $dtExpire = [System.DateTime]::Parse($ExpirationDateTime, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+                    if ($dtExpire.Kind -ne "Utc") {
+                        $dtu = [System.DateTime]::SpecifyKind($dtExpire.ToUniversalTime(), [System.DateTimeKind]::Utc)
+                    }
+                    else {
+                        $dtu = $dtExpire
+                    }
+
+                    $expiration.type = "afterDateTime"
+                    $expiration.endDateTime = $dtu
                 }
-            }
+
+                If ($PSCmdlet.ParameterSetName -eq "Set No Expiration") {
+                    Write-verbose ("Setting Assignment {0} to not expire." -f $currentAssignment.id)
+
+                    if ($SetNoExpiration) {
+                        $expiration.type = "noExpiration"
+                        $expiration.endDateTime = $null
+                    }
+                }
 
 
 
 
 
-            $schedule.expiration = $expiration
+                $schedule.expiration = $expiration
 
-            $accessPackageAssignment.schedule = $schedule
+                $accessPackageAssignment.schedule = $schedule
 
-            $accessPackageAssignmentRequest.accessPackageAssignment = $accessPackageAssignment
+                $accessPackageAssignmentRequest.accessPackageAssignment = $accessPackageAssignment
 
-            $newRequestBody = $accessPackageAssignmentRequest | ConvertTo-Json -Depth 10
+                $newRequestBody = $accessPackageAssignmentRequest | ConvertTo-Json -Depth 10
 
-           
+
                 $result = Invoke-MgGraphRequest -Method POST -uri $assignmentRequestsUri -Body $newRequestBody
 
                 Write-Output ([pscustomobject]$result)
-           
+            }
+            else {
+                Write-Verbose { "Assignment {0} is currently set to not Expire, No updates needed!" }
+            }
 
 
         }
