@@ -1,4 +1,4 @@
-. C:\gh\jt\AzureADSamples\PowerShell\IdentityGovernance\AccessPackageAssignmentExpiration\Update-EMAccessPackageAssignmentExpiration.ps1
+. .\AccessPackageAssignmentExpiration\Update-EMAccessPackageAssignmentExpiration.ps1
 
 Describe InScopeDate {
     It 'Should return Correct Expiration endDateTime' {
