@@ -8,8 +8,9 @@
     Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId c6c63746-3a6a-45c9-adad-fce7ac4bbb73 -ExpirationDateTime (get-date).AddDays(10)
 
 .NOTES
-Assignment dates are bound by the policy of the original assignment
-
+ - Assignment dates are bound by the policy of the original assignment (I cannot set an expiration date greater than the policy for the assignment allows)
+ - Assignment policy must allow setting custom time spans for assignment
+ - Setting an expiring assignment to no expiration is not supported.
 #>
 function Update-EMAccessPackageAssignmentExpiration {
     [CmdletBinding(DefaultParameterSetName = 'Core',
@@ -24,8 +25,7 @@ function Update-EMAccessPackageAssignmentExpiration {
             Position = 0,
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
-            ValueFromRemainingArguments = $false,
-            ParameterSetName = 'Core')]
+            ValueFromRemainingArguments = $false)]
         [ValidateNotNull()]
         [ValidateNotNullOrEmpty()]
         [ValidateScript( {
@@ -39,16 +39,23 @@ function Update-EMAccessPackageAssignmentExpiration {
             })]
         [Alias("AssignmentId")]
         $AccessPackageAssignmentId,
-
         # The Expiration Date for the assignment
         [Parameter(Mandatory = $true,
             Position = 1,
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
             ValueFromRemainingArguments = $false,
-            ParameterSetName = 'Core')]
+            ParameterSetName = 'Set New Expiration Date')]
         [String]
-        $ExpirationDateTime
+        $ExpirationDateTime,
+        [Parameter(Mandatory = $true,
+            Position = 2,
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            ValueFromRemainingArguments = $false,
+            ParameterSetName = 'Set No Expiration')]
+        [switch]
+        $SetNoExpiration
 
     )
 
@@ -60,13 +67,7 @@ function Update-EMAccessPackageAssignmentExpiration {
 
         $RequestType = "AdminUpdate"
 
-        $dtExpire = [System.DateTime]::Parse($ExpirationDateTime, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
-        if ($dtExpire.Kind -ne "Utc") {
-            $dtu = [System.DateTime]::SpecifyKind($dtExpire.ToUniversalTime(), [System.DateTimeKind]::Utc)
-        }
-        else {
-            $dtu = $dtExpire
-        }
+
     }
 
 
@@ -76,6 +77,12 @@ function Update-EMAccessPackageAssignmentExpiration {
 
         $currentAssignment = $null
         $currentAssignment = Get-MgEntitlementManagementAccessPackageAssignment -AccessPackageAssignmentId $AccessPackageAssignmentId
+
+        $currentExpirationDateTime = $currentAssignment.schedule.expiration.endDateTime
+
+        $currentExpirationDays = (New-TimeSpan -End $currentExpirationDateTime -Start (get-date)).Days
+
+        Write-verbose ("{0} Assignment currently expires on {1} ({2} Days)" -f $currentAssignment.id,$currentExpirationDateTime, $currentExpirationDays)
 
         If ($null -eq $currentAssignment) {
             Write-Error ("Assignment not found for $AccessPackageAssignmentId!")
@@ -92,38 +99,54 @@ function Update-EMAccessPackageAssignmentExpiration {
             $accessPackageAssignment.id = $currentAssignment.id
             $accessPackageAssignment.assignmentPolicyId = $AssignmentPolicyId
 
-
-
-
-
             $schedule = @{}
-
             $schedule.startDateTime = $currentAssignment.schedule.StartDateTime
+            
+            
             $expiration = @{}
 
-            $expiration.type = "afterDateTime"
-            $expiration.endDateTime = $dtu
+            If ($PSCmdlet.ParameterSetName -eq "Set New Expiration Date")
+            {
+                $dtExpire = [System.DateTime]::Parse($ExpirationDateTime, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+                if ($dtExpire.Kind -ne "Utc") {
+                    $dtu = [System.DateTime]::SpecifyKind($dtExpire.ToUniversalTime(), [System.DateTimeKind]::Utc)
+                }
+                else {
+                    $dtu = $dtExpire
+                }
+
+                $expiration.type = "afterDateTime"
+                $expiration.endDateTime = $dtu
+            }
+
+            If ($PSCmdlet.ParameterSetName -eq "Set No Expiration")
+            {
+                throw "Updating an expiring assignment to no expiration is not currently supported!"
+
+                if ($SetNoExpiration)
+                {
+                $expiration.type = "noExpiration"
+                $expiration.endDateTime = $null
+                }
+            }
+
+
+
+
 
             $schedule.expiration = $expiration
 
             $accessPackageAssignment.schedule = $schedule
 
-
-
-
             $accessPackageAssignmentRequest.accessPackageAssignment = $accessPackageAssignment
 
             $newRequestBody = $accessPackageAssignmentRequest | ConvertTo-Json -Depth 10
 
-            try {
+           
+                $result = Invoke-MgGraphRequest -Method POST -uri $assignmentRequestsUri -Body $newRequestBody
 
-                Invoke-MgGraphRequest -Method POST -uri $assignmentRequestsUri -Body $newRequestBody
-            }
-            catch {
-
-                write-error $_
-
-            }
+                Write-Output ([pscustomobject]$result)
+           
 
 
         }
