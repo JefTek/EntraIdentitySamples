@@ -6,11 +6,13 @@
 .EXAMPLE
     Update the assignment to expire 10 days from today
     Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId c6c63746-3a6a-45c9-adad-fce7ac4bbb73 -ExpirationDateTime (get-date).AddDays(10)
-
+.EXAMPLE
+    Update the assignment to set to expire, to not expire
+    Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId c6c63746-3a6a-45c9-adad-fce7ac4bbb73 -SetNoExpiration
 .NOTES
  - Assignment dates are bound by the policy of the original assignment (I cannot set an expiration date greater than the policy for the assignment allows)
  - Assignment policy must allow setting custom time spans for assignment
- - Assignment policy for existing assignment must be set for no expiration before setting an expring assignment to no expiration
+ - Assignment policy for existing assignment must be set for no expiration before setting an expiring assignment to no expiration
 #>
 function Update-EMAccessPackageAssignmentExpiration {
     [CmdletBinding(DefaultParameterSetName = 'Core',
@@ -147,11 +149,12 @@ function Update-EMAccessPackageAssignmentExpiration {
 
                 Write-Output ([pscustomobject]$result)
             }
-            else {
-                Write-Verbose { "Assignment {0} is currently set to not Expire, No updates needed!" }
-            }
 
 
+
+        }
+        else {
+            Write-Warning ("Assignment {0} is currently set to not Expire, No updates needed!" -f $currentAssignment.id )
         }
 
     }

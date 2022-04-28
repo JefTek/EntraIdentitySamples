@@ -1,23 +1,30 @@
-. .\Update-EMAccessPackageAssignmentExpiration.ps1
-
+BeforeAll {
+    . $PSScriptRoot\Update-EMAccessPackageAssignmentExpiration.ps1
+    $assignmentId1 = "af31c660-5503-4b6e-a2c3-f6d2a7ed145f"
+    $assignmentId2 = "c6c63746-3a6a-45c9-adad-fce7ac4bbb73"
+    $assignmentId3 = "3fd22841-fbd1-4b8b-a59b-9027fb67a6fd"
+}
 Describe InScopeDate {
     It 'Should return Correct Expiration endDateTime' {
         $ExpirationDate = ((get-date -AsUTC).ToUniversalTime()).AddDays(20)
-        $updated = Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId af31c660-5503-4b6e-a2c3-f6d2a7ed145f -ExpirationDateTime $ExpirationDate
+        $updated = Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId $assignmentId1 -ExpirationDateTime $ExpirationDate
         $updated.requestStatus | Should -be "Accepted"
         ((Get-Date $updated.schedule.expiration.endDateTime -AsUTC).ToUniversalTime()) | Should -be $ExpirationDate
     }
 
+    It 'Attempting to set assignment to not expire should throw exception when not allowed by policy' {
+        Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId $assignmentId1  -SetNoExpiration | should -Throw
 
-    It 'Attempting to set assignment to not expire should throw exception' {
-        $ExceptionMessage = "RuntimeException: Updating an expiring assignment to no expiration is not currently supported!"
-        Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId af31c660-5503-4b6e-a2c3-f6d2a7ed145f -SetNoExpiration | should -Throw -ExpectedMessage $ExceptionMessage
+    }
+
+    It 'Attempting to set assignment that is already set to not expired to not expire throw warning' {
+        Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId $assignmentId3  -SetNoExpiration | should -Throw
 
     }
 
     It 'Attempting to set assignment to timespan outside of the assignment policy timespan should throw exception' {
         $ExpirationDate = ((get-date -AsUTC).ToUniversalTime()).AddDays(1000)
-        Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId af31c660-5503-4b6e-a2c3-f6d2a7ed145f -ExpirationDateTime $ExpirationDate | should -Throw
+        Update-EMAccessPackageAssignmentExpiration -AccessPackageAssignmentId $assignmentId2 -ExpirationDateTime $ExpirationDate | should -Throw
 
     }
 
