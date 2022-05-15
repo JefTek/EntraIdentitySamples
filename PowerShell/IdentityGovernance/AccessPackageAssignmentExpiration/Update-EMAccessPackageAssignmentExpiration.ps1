@@ -63,6 +63,8 @@ function Update-EMAccessPackageAssignmentExpiration {
 
     begin {
 
+
+        if ($PsversionTable.PSVersion -notlike "7*"){write-warning "This has not been tested with older versions of Windows PowerShell.  Please consider upgrading to PowerShell 7.x"}
         $apiVersion = "beta"
         $GraphEndpoint = (Get-MgEnvironment | Where-Object Name -eq $Environment).GraphEndpoint
         $assignmentRequestsUri = ("{0}/{1}/identityGovernance/entitlementManagement/accessPackageAssignmentRequests/" -f $GraphEndpoint, $apiVersion)
@@ -118,9 +120,9 @@ function Update-EMAccessPackageAssignmentExpiration {
                     else {
                         $dtu = $dtExpire
                     }
-
+                    $NewEndDate = ((Get-Date -Date $dtu -Format s) + "Z")
                     $expiration.type = "afterDateTime"
-                    $expiration.endDateTime = $dtu
+                    $expiration.endDateTime = $NewEndDate
                 }
 
                 If ($PSCmdlet.ParameterSetName -eq "Set No Expiration") {
