@@ -6,6 +6,20 @@ function Get-AADGroupWritebackSettings {
     )
     
     begin {
+
+        if ($null -eq (Get-MgContext)) {
+            Write-Error "$(Get-Date -f T) - Please Connect to MS Graph API with the Connect-MgGraph cmdlet from the Microsoft.Graph.Authentication module first before calling functions!" -ErrorAction Stop
+        }
+        else {
+            
+            
+            if ((Get-MgProfile).Name -ne "beta")
+            {
+                Write-Error "$(Get-Date -f T) - Please select the beta profile with 'Select-MgProfile -Name beta' to use this cmdlet" -ErrorAction Stop
+            }
+            
+
+        }
         
     }
     
@@ -39,7 +53,13 @@ function Get-AADGroupWritebackSettings {
                 $WriteBackOnPremGroupType = $group.AdditionalProperties['writebackConfiguration'].onPremisesGroupType
             }
             else {
-                $WriteBackOnPremGroupType = "NOT DEFINED"
+                if ($checkedGroup.Type -eq 'M365')
+                {
+                $WriteBackOnPremGroupType = "universalDistributionGroup (M365 DEFAULT)"
+                }
+                else {
+                    $WriteBackOnPremGroupType = "universalSecurityGroup (Security DEFAULT)"
+                }
             }
 
             $checkedGroup.WriteBackEnabled = $writebackEnabled
@@ -49,10 +69,10 @@ function Get-AADGroupWritebackSettings {
             {
                 if ($checkedGroup.WriteBackEnabled -ne $false)
                 {
-                    $checkedGroup.EffectiveWriteBack = "will be writtenback onprem"
+                    $checkedGroup.EffectiveWriteBack = ("Cloud M365 group will be writtenback onprem as {0} grouptype" -f $WriteBackOnPremGroupType)
                 }
                 else {
-                    $checkedGroup.EffectiveWriteBack = "will NOT be writtenback onprem"
+                    $checkedGroup.EffectiveWriteBack = "Cloud M365 group will NOT be writtenback onprem"
                 }
             }
 
@@ -60,10 +80,10 @@ function Get-AADGroupWritebackSettings {
             {
                 if ($checkedGroup.WriteBackEnabled -eq $true)
                 {
-                    $checkedGroup.EffectiveWriteBack = "will be writtenback onprem"
+                    $checkedGroup.EffectiveWriteBack = ("Cloud security group will be writtenback onprem as {0} grouptype" -f $WriteBackOnPremGroupType)
                 }
                 else {
-                    $checkedGroup.EffectiveWriteBack = "will NOT be writtenback onprem"
+                    $checkedGroup.EffectiveWriteBack = "Cloud security will NOT be writtenback onprem"
                 }
             }
 
