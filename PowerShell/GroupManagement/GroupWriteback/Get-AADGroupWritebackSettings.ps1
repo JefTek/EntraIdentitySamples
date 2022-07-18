@@ -18,6 +18,13 @@ function Get-AADGroupWritebackSettings {
                 Write-Error "$(Get-Date -f T) - Please select the beta profile with 'Select-MgProfile -Name beta' to use this cmdlet" -ErrorAction Stop
             }
             
+            $GroupsModuleVersion = (get-command -Module Microsoft.Graph.Groups -Name "Get-MGGroup").Version
+
+            if ($GroupsModuleVersion.Major -le "1" -and $GroupsModuleVersion.Minor -lt '10')
+            {
+                Write-Error ("Microsoft.Graph.Groups Module 1.10 or Greater is not installed!  Pleas Update-Module to the latest version!") -ErrorAction Stop
+                
+            }
 
         }
         
@@ -40,7 +47,7 @@ function Get-AADGroupWritebackSettings {
         
             $writebackEnabled = $null
 
-            switch ($group.AdditionalProperties['writebackConfiguration'].isEnabled)
+            switch ($group.writebackConfiguration.isEnabled)
             {
                 $true { $writebackEnabled = "TRUE"}
                 $false { $writebackEnabled = "FALSE"}
@@ -48,9 +55,9 @@ function Get-AADGroupWritebackSettings {
             }
             
             
-            if ($null -ne ($group.AdditionalProperties['writebackConfiguration'].onPremisesGroupType))
+            if ($null -ne ($group.writebackConfiguration.onPremisesGroupType))
             {
-                $WriteBackOnPremGroupType = $group.AdditionalProperties['writebackConfiguration'].onPremisesGroupType
+                $WriteBackOnPremGroupType = $group.writebackConfiguration.onPremisesGroupType
             }
             else {
                 if ($checkedGroup.Type -eq 'M365')

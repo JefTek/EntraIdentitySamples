@@ -5,7 +5,7 @@ function Update-AADGroupWritebackSettings {
         $GroupId,
         [bool]
         $WriteBackEnabled,
-        [ValidateSet("universalDistributionGroup", "universalSecurityGroup", "universalMailEnabledSecurityGroup",$null)]
+        [ValidateSet("universalDistributionGroup", "universalSecurityGroup", "universalMailEnabledSecurityGroup")]
         [string]
         $WriteBackOnPremGroupType
     )
@@ -27,6 +27,12 @@ function Update-AADGroupWritebackSettings {
                 Write-Error "$(Get-Date -f T) - Please select the beta profile with 'Select-MgProfile -Name beta' to use this cmdlet" -ErrorAction Stop
             }
             
+            $GroupsModuleVersion = (get-command -Module Microsoft.Graph.Groups -Name "Get-MGGroup").Version
+            if ($GroupsModuleVersion.Major -le "1" -and $GroupsModuleVersion.Minor -lt '10')
+            {
+                Write-Error ("Microsoft.Graph.Groups Module 1.10 or Greater is not installed!  Pleas Update-Module to the latest version!") -ErrorAction Stop
+                
+            }
 
         }
         
@@ -49,13 +55,10 @@ function Update-AADGroupWritebackSettings {
 
 
             $wbc = @{}
-            $updates = @{}
-            $updates.isEnabled = $WriteBackEnabled
-            $updates.onPremisesGroupType = $WriteBackOnPremGroupType
-            $wbc.writebackConfiguration = $updates
-
+            $wbc.isEnabled = $WriteBackEnabled
+            $wbc.onPremisesGroupType = $WriteBackOnPremGroupType
             Write-Verbose ("Updating Group {0} with Group Writeback settings of Writebackenabled={1} and onPremisesGroupType={2}" -f $gid,$WriteBackEnabled,$WriteBackOnPremGroupType )
-            Update-MgGroup -GroupId $gid -BodyParameter ($wbc|convertto-json -depth 10)
+            Update-MgGroup -GroupId $gid -writeBackConfiguration $wbc
             Write-Verbose ("Group Updated!")
     }
 }
