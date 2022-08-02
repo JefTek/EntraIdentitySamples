@@ -30,8 +30,7 @@ function Get-AADApplicationUsageInfo {
         ## Initialize Critical Dependencies
         $CriticalError = $null
         try {
-            ## Import Required Modules
-            Import-Module Microsoft.Graph.Groups -MinimumVersion 1.10.0 -ErrorAction Stop
+
 
             ## Check MgModule Connection
             $MgContext = Get-MgContext
