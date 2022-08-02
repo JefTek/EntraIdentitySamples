@@ -17,11 +17,14 @@ function Get-AADApplicationUsageInfo {
 
         # Service Principal Object
         [Parameter(Mandatory = $true, ParameterSetName = 'GraphServicePrincipal', Position = 1, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
-        [Object[]] $ServicePrincipal,
+        [Object[]]
+        $ServicePrincipal,
         # Days ago to look at Audit Log history (ex 7 Days Ago)
+        [ValidateRange(1, 30)]
+        [int]
         $DaysAgo = 1
     )
-    
+
     begin {
 
         ## Initialize Critical Dependencies
@@ -48,7 +51,7 @@ function Get-AADApplicationUsageInfo {
             }
         }
         catch { Write-Error -ErrorRecord $_ -ErrorVariable CriticalError; return }
-        
+
         ## Save Current MgProfile to Restore at End
         $previousMgProfile = Get-MgProfile
         if ($previousMgProfile.Name -ne 'beta') {
@@ -58,7 +61,7 @@ function Get-AADApplicationUsageInfo {
         $queryDate = get-date (get-date).AddDays($(0 - $DaysAgo)) -UFormat %Y-%m-%dT00:00:00Z
         Write-verbose $queryDate
     }
-    
+
     process {
 
         $logs = @("interactiveUser", "nonInteractiveUser", "servicePrincipal", "managedIdentity")
@@ -77,11 +80,11 @@ function Get-AADApplicationUsageInfo {
             $appInfo.AppDisplayName = (Get-MgServicePrincipal -Filter ("appId eq '{0}'" -f $aId)).DisplayName
 
             foreach ($logName in $logs) {
-            
-        
+
+
                 $events = $null
                 Write-Verbose ("Counting events for the $log...")
-            
+
 
                 $filter = ("appId eq '{0}' and signInEventTypes/any(t: t eq '{1}') and createdDateTime ge {2}" -f $aId, $logName, $queryDate)
 
@@ -103,11 +106,11 @@ function Get-AADApplicationUsageInfo {
                     else {
                         if ($appInfo.$($LogName + "_LastSignIn") -gt $lastUsedDate) {
                             $lastUsedDate = $appInfo.$($LogName + "_LastSignIn")
-                        }   
+                        }
                     }
                 }
-            
-          
+
+
             }
 
             if ($null -ne $lastUsedDate) {
@@ -120,10 +123,10 @@ function Get-AADApplicationUsageInfo {
             Write-Output ([pscustomobject]$appInfo)
 
         }
-        
+
     }
-    
+
     end {
-        
+
     }
 }
