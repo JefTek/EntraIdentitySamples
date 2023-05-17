@@ -62,13 +62,21 @@ function ConvertTo-EmGovernedGuest {
                 $cUser.UserType = $g.UserType
 
                 $subjectUri = ("https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/subjects(objectId='{0}')" -f $uid)
-                $subjectInfo = Invoke-MgGraphRequest -Method GET -Uri $subjectUri
 
-                $cUser.subjectLifecycle = $subjectInfo.subjectLifecycle
-                $cUser.connectedOrganizationId = $subjectInfo.connectedOrganizationId
+                try {
+                    $subjectInfo = Invoke-MgGraphRequest -Method GET -Uri $subjectUri
+                    $cUser.subjectLifecycle = $subjectInfo.subjectLifecycle
+                    $cUser.connectedOrganizationId = $subjectInfo.connectedOrganizationId
+    
+                    
+                    Write-Verbose ("User Lifecycle State: " + $cUser.subjectLifecycle)
+                }
+                catch {
+                    $cUser.subjectLifecycle = "Error"
+                
+                }
 
                 
-                Write-Verbose ("User Lifecycle State: " + $cUser.subjectLifecycle)
 
                 $existingEMAssignments = $null
 
@@ -129,11 +137,11 @@ function ConvertTo-EmGovernedGuest {
                 }
 
 
-                if ($cUser.subjectLifecycle -ne 'governed') {
+                if ($cUser.subjectLifecycle -ne 'governed' -and $cUser.subjectLifecycle -ne 'Error') {
                     Write-Verbose ("Converting Guest to Governed")
 
                     try {
-                        Invoke-MgGraphRequest -Method Patch -uri $subjectUri -Body (@{"subjectLifecycle" = "governed" } | ConvertTo-Json) -ContentType "application/json"
+                        Invoke-MgGraphRequest -Method Patch -uri $subjectUri -Body (@{"subjectLifecycle" = "governed" } | ConvertTo-Json) -ContentType "application/json" -ErrorAction Stop
                    
                         $cUser.ConversionResult = "Converted"
                         $cUser.ConversionResultDetails = $null
@@ -147,7 +155,7 @@ function ConvertTo-EmGovernedGuest {
                 }
                 else {
                     $cUser.ConversionResult = "Skipped"
-                    $cUser.ConversionResultDetails = "User is Already Governed!"
+                    $cUser.ConversionResultDetails = "User is Already Governed or Unknown!"
                     Write-Verbose ("{0} skipped and is already governed!" -f $cuser.UserPrincipalName)
                 }
 
