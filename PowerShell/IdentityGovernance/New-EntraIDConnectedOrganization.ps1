@@ -20,7 +20,7 @@
 .FUNCTIONALITY
     The functionality that best describes this cmdlet
 #>
-function New-AzureADConnectedOrganization {
+function New-EntraIDConnectedOrganization {
     [CmdletBinding(DefaultParameterSetName = 'Default',
         SupportsShouldProcess = $true,
         PositionalBinding = $false,
